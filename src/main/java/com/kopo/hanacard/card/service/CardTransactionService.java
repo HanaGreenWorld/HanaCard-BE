@@ -11,8 +11,10 @@ import com.kopo.hanacard.common.exception.ErrorCode;
 import com.kopo.hanacard.user.domain.User;
 import com.kopo.hanacard.user.repository.UserRepository;
 import com.kopo.hanacard.user.service.UserService;
+import com.kopo.hanacard.card.event.CardTransactionCreatedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,8 @@ public class CardTransactionService {
     private final UserCardRepository userCardRepository;
     private final UserRepository userRepository;
     private final UserService userService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final WebhookService webhookService;
 
     public List<CardTransactionResponse> getUserCardTransactions(Long userId) {
         List<UserCard> userCards = userCardRepository.findByUserIdAndIsActive(userId, true);
@@ -102,10 +106,7 @@ public class CardTransactionService {
 
         return new CardConsumptionSummaryResponse(totalAmount, totalCashback, categoryAmounts, recentTransactions);
     }
-    
-    /**
-     * 빈 소비현황 요약 생성
-     */
+
     private CardConsumptionSummaryResponse createEmptyConsumptionSummary() {
         return new CardConsumptionSummaryResponse(
             0L, 
@@ -132,9 +133,6 @@ public class CardTransactionService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 친환경 소비현황 분석
-     */
     public CardConsumptionSummaryResponse getEcoConsumptionAnalysis(Long userId) {
         List<UserCard> userCards = userCardRepository.findByUserIdAndIsActiveTrue(userId);
         if (userCards.isEmpty()) {
@@ -200,9 +198,6 @@ public class CardTransactionService {
                 .build();
     }
 
-    /**
-     * 태그별 거래내역 조회
-     */
     public List<CardTransactionResponse> getTransactionsByTag(Long userId, String tag) {
         List<UserCard> userCards = userCardRepository.findByUserIdAndIsActiveTrue(userId);
         if (userCards.isEmpty()) {
@@ -219,9 +214,6 @@ public class CardTransactionService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 전화번호로 카드 거래내역 조회
-     */
     public List<CardTransactionResponse> getCardTransactionsByPhone(String phoneNumber) {
         User user = userService.getUserByPhoneNumber(phoneNumber);
         List<UserCard> userCards = userCardRepository.findByUserAndIsActiveTrue(user);
@@ -237,6 +229,69 @@ public class CardTransactionService {
         return transactions.stream()
                 .map(CardTransactionResponse::new)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CardTransaction createCardTransaction(Long userId, String merchantName, String businessNumber,
+                                               Long amount, String category, String merchantCategory) {
+        try {
+            // 1. 사용자 카드 조회 (주 카드 사용)
+            List<UserCard> userCards = userCardRepository.findByUserIdAndIsActive(userId, true);
+            if (userCards.isEmpty()) {
+                throw new BusinessException(ErrorCode.CARD_NOT_FOUND);
+            }
+            
+            UserCard primaryCard = userCards.get(0); // 첫 번째 카드를 주 카드로 사용
+            
+            // 2. 카드 거래 생성
+            CardTransaction transaction = CardTransaction.builder()
+                    .userCard(primaryCard)
+                    .merchantName(merchantName)
+                    .businessNumber(businessNumber)
+                    .amount(amount)
+                    .category(category)
+                    .merchantCategory(merchantCategory)
+                    .transactionDate(LocalDateTime.now())
+                    .description(String.format("%s에서 %d원 결제", merchantName, amount))
+                    .cashbackAmount(0L) // 기본값
+                    .cashbackRate(java.math.BigDecimal.ZERO) // 기본값
+                    .tags("") // 기본값
+                    .build();
+            
+            // 3. 거래 저장
+            CardTransaction savedTransaction = cardTransactionRepository.save(transaction);
+            
+            // 4. 이벤트 발행 (사업자 번호가 있는 경우만)
+            if (businessNumber != null && !businessNumber.trim().isEmpty()) {
+                CardTransactionCreatedEvent event = CardTransactionCreatedEvent.of(
+                    savedTransaction.getId(),
+                    userId,
+                    merchantName,
+                    businessNumber,
+                    amount,
+                    savedTransaction.getTransactionDate(),
+                    category,
+                    merchantCategory
+                );
+                
+                eventPublisher.publishEvent(event);
+                
+                // 5. 하나그린세상에 웹훅 전송
+                webhookService.sendCardTransactionWebhook(savedTransaction);
+                
+                log.info("카드 거래 생성, 이벤트 발행 및 웹훅 전송 완료 - 거래ID: {}, 사용자ID: {}, 가맹점: {}, 사업자번호: {}",
+                        savedTransaction.getId(), userId, merchantName, businessNumber);
+            } else {
+                log.info("카드 거래 생성 완료 (사업자번호 없음) - 거래ID: {}, 사용자ID: {}, 가맹점: {}",
+                        savedTransaction.getId(), userId, merchantName);
+            }
+            
+            return savedTransaction;
+            
+        } catch (Exception e) {
+            log.error("카드 거래 생성 실패 - 사용자ID: {}, 가맹점: {}, 에러: {}", userId, merchantName, e.getMessage(), e);
+            throw new BusinessException(ErrorCode.TRANSACTION_CREATE_FAILED);
+        }
     }
 }
 
