@@ -9,15 +9,9 @@ import java.util.List;
 
 @Repository
 public interface CardBenefitRepository extends JpaRepository<CardBenefit, Long> {
-    
-    List<CardBenefit> findByCardProduct(CardProduct cardProduct);
-    
-    List<CardBenefit> findByCardProductAndIsActive(CardProduct cardProduct, Boolean isActive);
-    
+
     List<CardBenefit> findByCardProductAndBenefitTypeAndIsActive(CardProduct cardProduct, String benefitType, Boolean isActive);
-    
-    List<CardBenefit> findByCardProductAndCategoryAndIsActive(CardProduct cardProduct, String category, Boolean isActive);
-    
+
     List<CardBenefit> findByCardProductAndIsActiveTrue(CardProduct cardProduct);
 }
 
