@@ -40,27 +40,19 @@ public class UserCard extends DateTimeEntity {
     @Column(name = "cvv", nullable = false)
     private String cvv;
 
-    @Column(name = "current_benefit_type")
-    private String currentBenefitType;
-
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     @Builder
     public UserCard(User user, CardProduct cardProduct, String cardNumber, String cardNumberMasked,
-                   LocalDate expiryDate, String cvv, String currentBenefitType, Boolean isActive) {
+                   LocalDate expiryDate, String cvv, Boolean isActive) {
         this.user = user;
         this.cardProduct = cardProduct;
         this.cardNumber = cardNumber;
         this.cardNumberMasked = cardNumberMasked;
         this.expiryDate = expiryDate;
         this.cvv = cvv;
-        this.currentBenefitType = currentBenefitType;
         this.isActive = isActive != null ? isActive : true;
-    }
-
-    public void updateBenefitType(String benefitType) {
-        this.currentBenefitType = benefitType;
     }
 
     public void deactivate() {

@@ -10,10 +10,8 @@ import com.kopo.hanacard.card.domain.CardBenefit;
 import com.kopo.hanacard.card.repository.CardBenefitRepository;
 import com.kopo.hanacard.card.domain.CardTransaction;
 import com.kopo.hanacard.card.repository.CardTransactionRepository;
-import com.kopo.hanacard.benefit.domain.CardBenefitCategory;
-import com.kopo.hanacard.benefit.domain.CardBenefitDetail;
-import com.kopo.hanacard.benefit.repository.CardBenefitCategoryRepository;
-import com.kopo.hanacard.benefit.repository.CardBenefitDetailRepository;
+import com.kopo.hanacard.hanamoney.domain.HanamoneyMembership;
+import com.kopo.hanacard.hanamoney.repository.HanamoneyMembershipRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -22,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -37,8 +36,7 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
     private final UserCardRepository userCardRepository;
     private final CardBenefitRepository cardBenefitRepository;
     private final CardTransactionRepository cardTransactionRepository;
-    private final CardBenefitCategoryRepository benefitCategoryRepository;
-    private final CardBenefitDetailRepository benefitDetailRepository;
+    private final HanamoneyMembershipRepository hanamoneyMembershipRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -47,6 +45,9 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
         
         // 고객의 카드 가입 정보 생성
         createCustomerCards(testCustomer);
+        
+        // 하나머니 멤버십 생성
+        createHanamoneyMembership(testCustomer);
         
         // 카드 혜택 데이터 생성
         createCardBenefits();
@@ -61,9 +62,12 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
         return userRepository.findByPhoneNumber(phoneNumber)
                 .orElseGet(() -> {
                     User user = User.builder()
+                            .username("green_user") // username 추가
                             .name("김그린")
                             .email("green@example.com")
                             .phoneNumber(phoneNumber)
+                            .birthDate("1990-05-15") // 생년월일 추가 (문자열)
+                            .ci("CI_01012345678_123456") // CI 추가 (목데이터용)
                             .customerGrade("GOLD")
                             .isActive(true)
                             .build();
@@ -81,31 +85,38 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
             List<CardProduct> availableCardProducts = cardProductRepository.findAll();
             if (!availableCardProducts.isEmpty()) {
                 // CardProduct를 직접 사용하여 UserCard 생성
-                List<UserCard> userCards = Arrays.asList(
-                    UserCard.builder()
+                List<UserCard> userCards = new ArrayList<>();
+                
+                // 첫 번째 카드 (그린라이프 카드)
+                if (availableCardProducts.size() > 0) {
+                    userCards.add(UserCard.builder()
                         .user(user)
-                        .cardProduct(availableCardProducts.get(0)) // 그린라이프 카드
+                        .cardProduct(availableCardProducts.get(0))
                         .cardNumber("4000-1234-5678-9012")
                         .cardNumberMasked("4000-****-****-9012")
                         .expiryDate(LocalDate.now().plusYears(5))
                         .cvv("123")
-                        .currentBenefitType("대중교통")
                         .isActive(true)
-                        .build(),
-                    
-                    UserCard.builder()
+                        .build());
+                }
+                
+                // 두 번째 카드 (원큐씨앗 카드) - 카드 상품이 2개 이상 있을 때만 생성
+                if (availableCardProducts.size() > 1) {
+                    userCards.add(UserCard.builder()
                         .user(user)
-                        .cardProduct(availableCardProducts.get(1)) // 원큐씨앗 카드
+                        .cardProduct(availableCardProducts.get(1))
                         .cardNumber("4000-1234-5678-9013")
                         .cardNumberMasked("4000-****-****-9013")
                         .expiryDate(LocalDate.now().plusYears(5))
                         .cvv("456")
-                        .currentBenefitType("친환경 가맹점")
                         .isActive(true)
-                        .build()
-                );
-                userCardRepository.saveAll(userCards);
-                log.info("고객 {}의 카드 {}개가 가입되었습니다.", user.getName(), userCards.size());
+                        .build());
+                }
+                
+                if (!userCards.isEmpty()) {
+                    userCardRepository.saveAll(userCards);
+                    log.info("고객 {}의 카드 {}개가 가입되었습니다.", user.getName(), userCards.size());
+                }
             }
         }
     }
@@ -174,26 +185,11 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
             if (!userCards.isEmpty()) {
                 UserCard userCard = userCards.get(0); // 첫 번째 카드 사용
 
-                // 데이터베이스에서 카테고리 정보 가져오기
-                List<CardBenefitCategory> categories = benefitCategoryRepository.findAll();
-                List<CardBenefitDetail> details = benefitDetailRepository.findAll();
-
-                // 카테고리별로 매핑 생성
-                Map<String, CardBenefitCategory> categoryMap = categories.stream()
-                    .collect(Collectors.toMap(CardBenefitCategory::getCategoryName, category -> category));
-
-                // 상세 정보 매핑 (merchantCategory 기준)
-                Map<String, CardBenefitDetail> detailMap = details.stream()
-                    .collect(Collectors.toMap(CardBenefitDetail::getMerchantCategory, detail -> detail));
-
                 List<CardTransaction> transactions = Arrays.asList(
-                    // 전기차 충전소 거래
+                    // 전기차 충전소 거래 (친환경 가맹점 매칭)
                     CardTransaction.builder()
                         .userCard(userCard)
                         .merchantName("테슬라 충전소")
-                        .category("전기차")
-                        .benefitCategory(categoryMap.get("전기차 충전소"))
-                        .benefitDetail(detailMap.get("EV_CHARGING"))
                         .merchantCategory("EV_CHARGING")
                         .amount(15000L)
                         .cashbackAmount(450L) // 3% 캐시백
@@ -201,6 +197,7 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .transactionDate(LocalDateTime.now().minusDays(1))
                         .description("전기차 급속 충전")
                         .tags("친환경,전기차")
+                        .businessNumber("234-56-78901")
                         .build(),
 
                     // 대중교통 거래
@@ -208,8 +205,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("지하철 2호선")
                         .category("대중교통")
-                        .benefitCategory(categoryMap.get("대중교통"))
-                        .benefitDetail(detailMap.get("PUBLIC_TRANSPORT"))
                         .merchantCategory("PUBLIC_TRANSPORT")
                         .amount(5000L)
                         .cashbackAmount(100L) // 2% 캐시백
@@ -224,8 +219,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("킥고잉")
                         .category("공유킥보드")
-                        .benefitCategory(categoryMap.get("공유 모빌리티"))
-                        .benefitDetail(detailMap.get("SHARED_MOBILITY"))
                         .merchantCategory("SHARED_MOBILITY")
                         .amount(3000L)
                         .cashbackAmount(120L) // 4% 캐시백
@@ -240,8 +233,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("제로웨이스트샵")
                         .category("리필샵")
-                        .benefitCategory(categoryMap.get("리필스테이션"))
-                        .benefitDetail(detailMap.get("REFILL_STATION"))
                         .merchantCategory("REFILL_STATION")
                         .amount(25000L)
                         .cashbackAmount(750L) // 3% 캐시백
@@ -256,8 +247,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("올가홀푸드")
                         .category("유기농식품")
-                        .benefitCategory(categoryMap.get("친환경 브랜드"))
-                        .benefitDetail(detailMap.get("ECO_BRAND"))
                         .merchantCategory("ECO_BRAND")
                         .amount(35000L)
                         .cashbackAmount(1050L) // 3% 캐시백
@@ -272,8 +261,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("당근마켓")
                         .category("중고거래")
-                        .benefitCategory(categoryMap.get("친환경 브랜드"))
-                        .benefitDetail(detailMap.get("ECO_BRAND"))
                         .merchantCategory("ECO_BRAND")
                         .amount(8000L)
                         .cashbackAmount(120L) // 1.5% 캐시백
@@ -288,8 +275,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("네이처리퍼블릭")
                         .category("친환경브랜드")
-                        .benefitCategory(categoryMap.get("친환경 브랜드"))
-                        .benefitDetail(detailMap.get("ECO_BRAND"))
                         .merchantCategory("ECO_BRAND")
                         .amount(120000L)
                         .cashbackAmount(2400L) // 2% 캐시백
@@ -304,8 +289,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("현대전기차")
                         .category("전기차")
-                        .benefitCategory(categoryMap.get("전기차 충전소"))
-                        .benefitDetail(detailMap.get("EV_CHARGING"))
                         .merchantCategory("EV_CHARGING")
                         .amount(50000L)
                         .cashbackAmount(2500L) // 5% 캐시백 (프리미엄)
@@ -320,8 +303,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("라임 스쿠터")
                         .category("공유킥보드")
-                        .benefitCategory(categoryMap.get("공유 모빌리티"))
-                        .benefitDetail(detailMap.get("SHARED_MOBILITY"))
                         .merchantCategory("SHARED_MOBILITY")
                         .amount(2500L)
                         .cashbackAmount(100L) // 4% 캐시백
@@ -336,8 +317,6 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                         .userCard(userCard)
                         .merchantName("이마트 유기농")
                         .category("유기농식품")
-                        .benefitCategory(categoryMap.get("친환경 브랜드"))
-                        .benefitDetail(detailMap.get("ECO_BRAND"))
                         .merchantCategory("ECO_BRAND")
                         .amount(32000L)
                         .cashbackAmount(960L) // 3% 캐시백
@@ -349,8 +328,27 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                 );
 
                 cardTransactionRepository.saveAll(transactions);
-                log.info("총 {}개의 카드 거래내역이 생성되었습니다.", transactions.size());
             }
+        }
+    }
+
+    private void createHanamoneyMembership(User user) {
+        // 이미 하나머니 멤버십이 있는지 확인
+        if (hanamoneyMembershipRepository.findByUser_Id(user.getId()).isEmpty()) {
+            HanamoneyMembership membership = HanamoneyMembership.builder()
+                    .user(user)
+                    .membershipId("HM_" + user.getId() + "_" + System.currentTimeMillis())
+                    .balance(50000L) // 초기 잔액 5만원
+                    .totalEarned(50000L) // 총 적립 5만원
+                    .totalSpent(0L) // 총 사용 0원
+                    .isActive(true)
+                    .membershipLevel("BASIC")
+                    .build();
+            
+            hanamoneyMembershipRepository.save(membership);
+            log.info("하나머니 멤버십 생성 완료 - 사용자ID: {}, 잔액: {}", user.getId(), membership.getBalance());
+        } else {
+            log.info("하나머니 멤버십이 이미 존재합니다 - 사용자ID: {}", user.getId());
         }
     }
 }

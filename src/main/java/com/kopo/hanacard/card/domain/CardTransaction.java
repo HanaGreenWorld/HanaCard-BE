@@ -1,7 +1,5 @@
 package com.kopo.hanacard.card.domain;
 
-import com.kopo.hanacard.benefit.domain.CardBenefitCategory;
-import com.kopo.hanacard.benefit.domain.CardBenefitDetail;
 import com.kopo.hanacard.common.domain.DateTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -35,14 +33,6 @@ public class CardTransaction extends DateTimeEntity {
     @Column(name = "category", nullable = false, length = 100)
     private String category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "benefit_category_id")
-    private CardBenefitCategory benefitCategory;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "benefit_detail_id")
-    private CardBenefitDetail benefitDetail;
-
     @Column(name = "amount", nullable = false)
     private Long amount;
 
@@ -61,23 +51,24 @@ public class CardTransaction extends DateTimeEntity {
     @Column(name = "tags", length = 500)
     private String tags; // 친환경, 대중교통, 전기차 등 태그들을 쉼표로 구분
 
+    @Column(name = "business_number", length = 20)
+    private String businessNumber; // 사업자 번호 (친환경 가맹점 매칭용)
+
     @Builder
     public CardTransaction(UserCard userCard, LocalDateTime transactionDate, String merchantName,
-                          String category, CardBenefitCategory benefitCategory, CardBenefitDetail benefitDetail,
-                          Long amount, Long cashbackAmount, BigDecimal cashbackRate,
-                          String description, String merchantCategory, String tags) {
+                          String category, Long amount, Long cashbackAmount, BigDecimal cashbackRate,
+                          String description, String merchantCategory, String tags, String businessNumber) {
         this.userCard = userCard;
         this.transactionDate = transactionDate;
         this.merchantName = merchantName;
         this.category = category;
-        this.benefitCategory = benefitCategory;
-        this.benefitDetail = benefitDetail;
         this.amount = amount;
         this.cashbackAmount = cashbackAmount != null ? cashbackAmount : 0L;
         this.cashbackRate = cashbackRate != null ? cashbackRate : BigDecimal.ZERO;
         this.description = description;
         this.merchantCategory = merchantCategory;
         this.tags = tags;
+        this.businessNumber = businessNumber;
     }
 }
 

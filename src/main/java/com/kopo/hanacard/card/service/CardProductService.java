@@ -30,17 +30,4 @@ public class CardProductService {
                 .map(CardProductResponse::new)
                 .collect(Collectors.toList());
     }
-
-    public CardProductResponse getCardProductById(Long productId) {
-        CardProduct product = cardProductRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("카드 상품을 찾을 수 없습니다."));
-        return new CardProductResponse(product);
-    }
-
-    public List<CardProductResponse> searchCardProducts(String keyword) {
-        List<CardProduct> products = cardProductRepository.findByKeywordAndIsActiveTrue(keyword);
-        return products.stream()
-                .map(CardProductResponse::new)
-                .collect(Collectors.toList());
-    }
 }

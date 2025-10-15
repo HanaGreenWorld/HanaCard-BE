@@ -40,27 +40,12 @@ public class CardController {
         return ApiResponse.success(cards);
     }
 
-    @Operation(summary = "카드 타입별 조회", description = "카드 타입별로 카드를 조회합니다.")
-    @GetMapping("/type/{cardType}")
-    public ApiResponse<List<CardProduct>> getCardsByType(@PathVariable String cardType) {
-        List<CardProduct> cards = cardService.getCardsByType(cardType);
-        return ApiResponse.success(cards);
-    }
-
-    @Operation(summary = "카드 조회", description = "ID로 카드를 조회합니다.")
-    @GetMapping("/{id}")
-    public ApiResponse<CardProduct> getCard(@PathVariable Long id) {
-        CardProduct card = cardService.getCardById(id);
-        return ApiResponse.success(card);
-    }
-
     @Operation(summary = "카드 등록", description = "사용자에게 카드를 등록합니다.")
     @PostMapping("/register")
     public ApiResponse<UserCardResponse> registerCard(@Valid @RequestBody CardRegisterRequest request) {
         UserCard userCard = cardService.registerCard(
                 request.getUserId(),
-                request.getCardId(),
-                request.getCurrentBenefitType()
+                request.getCardId()
         );
         return ApiResponse.success("카드가 성공적으로 등록되었습니다.", new UserCardResponse(userCard));
     }
@@ -79,14 +64,6 @@ public class CardController {
         return ApiResponse.success(new UserCardResponse(userCard));
     }
 
-    @Operation(summary = "카드 혜택 변경", description = "카드의 현재 혜택을 변경합니다.")
-    @PutMapping("/{cardNumber}/benefit")
-    public ApiResponse<UserCardResponse> updateCardBenefit(@PathVariable String cardNumber, 
-                                                          @RequestParam String benefitType) {
-        UserCard userCard = cardService.updateCardBenefit(cardNumber, benefitType);
-        return ApiResponse.success("카드 혜택이 성공적으로 변경되었습니다.", new UserCardResponse(userCard));
-    }
-
     @Operation(summary = "카드 비활성화", description = "카드를 비활성화합니다.")
     @DeleteMapping("/{cardNumber}")
     public ApiResponse<Void> deactivateCard(@PathVariable String cardNumber) {
@@ -101,15 +78,6 @@ public class CardController {
         return ApiResponse.success(benefits);
     }
 
-    @Operation(summary = "카드 혜택 타입별 조회", description = "카드의 특정 타입 혜택을 조회합니다.")
-    @GetMapping("/{cardId}/benefits/{benefitType}")
-    public ApiResponse<List<CardBenefit>> getCardBenefitsByType(@PathVariable Long cardId, 
-                                                               @PathVariable String benefitType) {
-        List<CardBenefit> benefits = cardService.getCardBenefitsByType(cardId, benefitType);
-        return ApiResponse.success(benefits);
-    }
-
-    // 카드 상품 관련 API
     @Operation(summary = "카드 상품 목록 조회", description = "모든 활성 카드 상품을 조회합니다.")
     @GetMapping("/products")
     public ApiResponse<List<CardProductResponse>> getAllCardProducts() {
@@ -124,21 +92,6 @@ public class CardController {
         return ApiResponse.success(products);
     }
 
-    @Operation(summary = "카드 상품 조회", description = "ID로 카드 상품을 조회합니다.")
-    @GetMapping("/products/{productId}")
-    public ApiResponse<CardProductResponse> getCardProduct(@PathVariable Long productId) {
-        CardProductResponse product = cardProductService.getCardProductById(productId);
-        return ApiResponse.success(product);
-    }
-
-    @Operation(summary = "카드 상품 검색", description = "키워드로 카드 상품을 검색합니다.")
-    @GetMapping("/products/search")
-    public ApiResponse<List<CardProductResponse>> searchCardProducts(@RequestParam String keyword) {
-        List<CardProductResponse> products = cardProductService.searchCardProducts(keyword);
-        return ApiResponse.success(products);
-    }
-
-    // 카드 거래내역 관련 API
     @Operation(summary = "사용자 카드 거래내역 조회", description = "사용자의 카드 거래내역을 조회합니다.")
     @GetMapping("/user/{userId}/transactions")
     public ApiResponse<List<CardTransactionResponse>> getUserCardTransactions(@PathVariable Long userId) {
@@ -162,16 +115,6 @@ public class CardController {
         return ApiResponse.success(transactions);
     }
 
-    @Operation(summary = "카드 혜택 변경", description = "사용자 카드의 혜택을 변경합니다.")
-    @PutMapping("/user/{userId}/benefit")
-    public ApiResponse<UserCardResponse> changeCardBenefit(@PathVariable Long userId, 
-                                                          @RequestParam String cardNumber,
-                                                          @RequestParam String benefitType) {
-        UserCard userCard = cardService.updateCardBenefit(cardNumber, benefitType);
-        return ApiResponse.success("카드 혜택이 성공적으로 변경되었습니다.", new UserCardResponse(userCard));
-    }
-
-
     @Operation(summary = "사용자 카드 혜택 조회", description = "사용자 카드의 혜택을 조회합니다.")
     @GetMapping("/user/{userId}/benefits")
     public ApiResponse<List<CardBenefitResponse>> getUserCardBenefits(@PathVariable Long userId) {
@@ -180,30 +123,6 @@ public class CardController {
                 .map(CardBenefitResponse::new)
                 .collect(Collectors.toList());
         return ApiResponse.success(responses);
-    }
-
-    @Operation(summary = "전화번호로 사용자 카드 혜택 조회", description = "전화번호로 사용자 카드의 혜택을 조회합니다.")
-    @GetMapping("/phone/{phoneNumber}/benefits")
-    public ApiResponse<List<CardBenefitResponse>> getUserCardBenefitsByPhone(@PathVariable String phoneNumber) {
-        List<CardBenefit> benefits = cardService.getUserCardBenefitsByPhone(phoneNumber);
-        List<CardBenefitResponse> responses = benefits.stream()
-                .map(CardBenefitResponse::new)
-                .collect(Collectors.toList());
-        return ApiResponse.success(responses);
-    }
-
-    @Operation(summary = "전화번호로 사용자 카드 조회", description = "전화번호로 사용자의 모든 카드를 조회합니다.")
-    @GetMapping("/phone/{phoneNumber}")
-    public ApiResponse<List<UserCardResponse>> getUserCardsByPhone(@PathVariable String phoneNumber) {
-        List<UserCardResponse> responses = cardService.getUserCardResponsesByPhone(phoneNumber);
-        return ApiResponse.success(responses);
-    }
-
-    @Operation(summary = "전화번호로 카드 거래내역 조회", description = "전화번호로 사용자의 카드 거래내역을 조회합니다.")
-    @GetMapping("/phone/{phoneNumber}/transactions")
-    public ApiResponse<List<CardTransactionResponse>> getCardTransactionsByPhone(@PathVariable String phoneNumber) {
-        List<CardTransactionResponse> transactions = cardTransactionService.getCardTransactionsByPhone(phoneNumber);
-        return ApiResponse.success(transactions);
     }
 
     @Operation(summary = "친환경 소비현황 분석", description = "이번 달 친환경 소비현황을 분석합니다.")

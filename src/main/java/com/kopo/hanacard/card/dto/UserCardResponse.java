@@ -18,7 +18,6 @@ public class UserCardResponse {
     private String cardNumberMasked;
     private LocalDate expiryDate;
     private Long creditLimit;
-    private String currentBenefitType;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -34,7 +33,6 @@ public class UserCardResponse {
         this.cardNumberMasked = userCard.getCardNumberMasked();
         this.expiryDate = userCard.getExpiryDate();
         this.creditLimit = userCard.getCardProduct().getCreditLimit();
-        this.currentBenefitType = userCard.getCurrentBenefitType();
         this.isActive = userCard.getIsActive();
         this.createdAt = userCard.getCreatedAt();
         this.updatedAt = userCard.getUpdatedAt();

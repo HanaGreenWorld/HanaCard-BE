@@ -33,17 +33,13 @@ public class CardService {
         return cardProductRepository.findByIsActiveTrue();
     }
 
-    public List<CardProduct> getCardsByType(String cardType) {
-        return cardProductRepository.findByProductTypeAndIsActiveTrue(cardType);
-    }
-
     public CardProduct getCardById(Long id) {
         return cardProductRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CARD_NOT_FOUND));
     }
 
     @Transactional
-    public UserCard registerCard(Long userId, Long cardId, String currentBenefitType) {
+    public UserCard registerCard(Long userId, Long cardId) {
         User user = userService.getUserById(userId);
         CardProduct cardProduct = getCardById(cardId);
 
@@ -64,7 +60,6 @@ public class CardService {
                 .cardNumberMasked(cardNumberMasked)
                 .expiryDate(expiryDate)
                 .cvv(cvv)
-                .currentBenefitType(currentBenefitType)
                 .isActive(true)
                 .build();
 
@@ -85,13 +80,6 @@ public class CardService {
     }
 
     @Transactional
-    public UserCard updateCardBenefit(String cardNumber, String benefitType) {
-        UserCard userCard = getUserCardByNumber(cardNumber);
-        userCard.updateBenefitType(benefitType);
-        return userCardRepository.save(userCard);
-    }
-
-    @Transactional
     public void deactivateCard(String cardNumber) {
         UserCard userCard = getUserCardByNumber(cardNumber);
         userCard.deactivate();
@@ -103,11 +91,6 @@ public class CardService {
         return cardBenefitRepository.findByCardProductAndIsActiveTrue(cardProduct);
     }
 
-    public List<CardBenefit> getCardBenefitsByType(Long cardId, String benefitType) {
-        CardProduct cardProduct = getCardById(cardId);
-        return cardBenefitRepository.findByCardProductAndBenefitTypeAndIsActive(cardProduct, benefitType, true);
-    }
-
     public List<CardBenefit> getUserCardBenefits(Long userId) {
         User user = userService.getUserById(userId);
         List<UserCard> userCards = userCardRepository.findByUserAndIsActiveTrue(user);
@@ -115,16 +98,6 @@ public class CardService {
         return userCards.stream()
                 .flatMap(userCard -> cardBenefitRepository.findByCardProductAndIsActiveTrue(userCard.getCardProduct()).stream())
                 .toList();
-    }
-
-    public List<CardBenefit> getUserCardBenefitsByPhone(String phoneNumber) {
-        User user = userService.getUserByPhoneNumber(phoneNumber);
-        return getUserCardBenefits(user.getId());
-    }
-
-    public List<UserCardResponse> getUserCardResponsesByPhone(String phoneNumber) {
-        User user = userService.getUserByPhoneNumber(phoneNumber);
-        return getUserCardResponses(user.getId());
     }
 
     private String generateCardNumber() {
