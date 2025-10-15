@@ -17,6 +17,7 @@ public enum ErrorCode {
     INVALID_CARD_INFO("C003", "유효하지 않은 카드 정보입니다."),
     CARD_BENEFIT_NOT_FOUND("C004", "카드 혜택을 찾을 수 없습니다."),
     USER_CARD_NOT_FOUND("C005", "사용자 카드를 찾을 수 없습니다."),
+    TRANSACTION_CREATE_FAILED("C006", "카드 거래 내역을 저장할 수 없습니다."),
     
     // 하나머니 관련
     HANAMONEY_ACCOUNT_NOT_FOUND("H001", "하나머니 계좌를 찾을 수 없습니다."),

@@ -13,9 +13,9 @@ spring:
         dialect: org.hibernate.dialect.Oracle12cDialect
 
   datasource:
-    url: jdbc:oracle:thin:@dinkdb_medium
-    username: DA2504
-    password: Data2504
+    url: ${ORACLE_DATASOURCE_URL}
+    username: ${ORACLE_DATASOURCE_USERNAME}
+    password: ${ORACLE_DATASOURCE_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
       maximum-pool-size: 5
@@ -31,6 +31,9 @@ logging:
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     oracle.jdbc: DEBUG
+
+
+
 
 
 

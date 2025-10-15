@@ -24,6 +24,13 @@ internal:
   auth:
     header: ${INTERNAL_AUTH_HEADER}
 
+integration:
+  hanagreenworld:
+    url: ${HANA_GREEN_WORLD_URL}
+
+
+
+
 
 
 
