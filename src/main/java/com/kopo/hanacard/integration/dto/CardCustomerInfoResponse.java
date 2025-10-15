@@ -9,33 +9,18 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * 하나카드 고객 정보 응답 DTO
- */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class CardCustomerInfoResponse {
 
-    /**
-     * 고객 기본 정보
-     */
     private CustomerBasicInfo customerInfo;
 
-    /**
-     * 카드 정보 목록
-     */
     private List<CardInfo> cards;
 
-    /**
-     * 하나머니 정보
-     */
     private HanamoneyInfo hanamoneyInfo;
 
-    /**
-     * 응답 생성 시간
-     */
     private LocalDateTime responseTime;
 
     @Getter
@@ -84,6 +69,9 @@ public class CardCustomerInfoResponse {
         private List<String> availableBenefits; // 사용 가능한 혜택
     }
 }
+
+
+
 
 
 

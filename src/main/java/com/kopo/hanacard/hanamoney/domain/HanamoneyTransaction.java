@@ -34,23 +34,14 @@ public class HanamoneyTransaction extends DateTimeEntity {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "related_entity_type")
-    private String relatedEntityType;
-
-    @Column(name = "related_entity_id")
-    private Long relatedEntityId;
-
     @Builder
     public HanamoneyTransaction(HanamoneyMembership membership, TransactionType transactionType,
-                               Long amount, Long balanceAfter, String description,
-                               String relatedEntityType, Long relatedEntityId) {
+                               Long amount, Long balanceAfter, String description) {
         this.membership = membership;
         this.transactionType = transactionType;
         this.amount = amount;
         this.balanceAfter = balanceAfter;
         this.description = description;
-        this.relatedEntityType = relatedEntityType;
-        this.relatedEntityId = relatedEntityId;
     }
 
     public enum TransactionType {

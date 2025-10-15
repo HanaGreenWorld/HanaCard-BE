@@ -14,8 +14,6 @@ public class HanamoneyTransactionResponse {
     private Long amount;
     private Long balanceAfter;
     private String description;
-    private String relatedEntityType;
-    private Long relatedEntityId;
     private LocalDateTime createdAt;
 
     public HanamoneyTransactionResponse(HanamoneyTransaction transaction) {
@@ -26,11 +24,12 @@ public class HanamoneyTransactionResponse {
         this.amount = transaction.getAmount();
         this.balanceAfter = transaction.getBalanceAfter();
         this.description = transaction.getDescription();
-        this.relatedEntityType = transaction.getRelatedEntityType();
-        this.relatedEntityId = transaction.getRelatedEntityId();
         this.createdAt = transaction.getCreatedAt();
     }
 }
+
+
+
 
 
 

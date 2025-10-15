@@ -6,26 +6,19 @@ import com.kopo.hanacard.card.repository.UserCardRepository;
 import com.kopo.hanacard.card.repository.CardTransactionRepository;
 import com.kopo.hanacard.user.domain.User;
 import com.kopo.hanacard.user.repository.UserRepository;
-import com.kopo.hanacard.benefit.domain.CardBenefitCategory;
-import com.kopo.hanacard.benefit.domain.CardBenefitDetail;
-import com.kopo.hanacard.benefit.repository.CardBenefitCategoryRepository;
-import com.kopo.hanacard.benefit.repository.CardBenefitDetailRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * 카드 통합 서비스
- * 하나그린세상에서 요청하는 카드 정보를 제공
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,33 +27,18 @@ public class CardIntegrationService {
     private final UserCardRepository userCardRepository;
     private final CardTransactionRepository cardTransactionRepository;
     private final UserRepository userRepository;
-    private final CardBenefitCategoryRepository benefitCategoryRepository;
-    private final CardBenefitDetailRepository benefitDetailRepository;
 
-    /**
-     * 카드 정보 조회 - 실제 DB 데이터 사용
-     *
-     * @param memberId 회원 ID
-     * @return 카드 정보
-     */
     public Map<String, Object> getCardInfo(Long memberId) {
-        log.info("💳 카드 정보 조회 시작 - 회원ID: {}", memberId);
-        log.info("💳 요청 파라미터: memberId={}", memberId);
-
         try {
             // 사용자 조회
             Optional<User> userOpt = userRepository.findById(memberId);
             if (userOpt.isEmpty()) {
-                log.warn("💳 사용자를 찾을 수 없음 - 회원ID: {}", memberId);
                 return createEmptyCardResponse();
             }
 
             User user = userOpt.get();
-            log.info("💳 사용자 정보 조회 완료 - 이름: {}, 전화번호: {}", user.getName(), user.getPhoneNumber());
-            
-            // 사용자의 활성 카드 조회
+
             List<UserCard> userCards = userCardRepository.findByUserIdAndIsActiveTrue(memberId);
-            log.info("💳 조회된 카드 수: {}", userCards.size());
             
             List<Map<String, Object>> cards = new ArrayList<>();
             BigDecimal totalCreditLimit = BigDecimal.ZERO;
@@ -68,16 +46,6 @@ public class CardIntegrationService {
             BigDecimal monthlyTotalUsage = BigDecimal.ZERO;
             
             for (UserCard userCard : userCards) {
-                log.info("💳 카드 상세 정보 조회 시작 - 카드ID: {}", userCard.getId());
-                log.info("  - 카드번호: {}", userCard.getCardNumberMasked());
-                log.info("  - 카드명: {}", userCard.getCardProduct().getProductName());
-                log.info("  - 카드타입: {}", userCard.getCardProduct().getProductType());
-                log.info("  - 신용한도: {}", userCard.getCardProduct().getCreditLimit());
-                log.info("  - 만료일: {}", userCard.getExpiryDate());
-                log.info("  - 혜택타입: {}", userCard.getCurrentBenefitType());
-                log.info("  - 활성상태: {}", userCard.getIsActive());
-                log.info("  - 이미지URL: {}", userCard.getCardProduct().getImageUrl());
-                
                 // 카드 정보 매핑
                 BigDecimal creditLimit = new BigDecimal(userCard.getCardProduct().getCreditLimit());
                 BigDecimal availableLimit = creditLimit.subtract(new BigDecimal("1000000")); // 임시 계산
@@ -95,16 +63,12 @@ public class CardIntegrationService {
                 cardInfo.put("benefits", List.of("주유할인 5%", "커피할인 30%", "친환경 적립")); // 임시 데이터
                 // 실제 카드 이미지 URL 사용 (데이터베이스에 저장된 이미지 URL)
                 String cardImageUrl = userCard.getCardProduct().getImageUrl();
-                log.info("💳 카드 이미지 URL 처리 - 원본: {}", cardImageUrl);
                 if (cardImageUrl == null || cardImageUrl.isEmpty()) {
                     // 이미지 URL이 없으면 기본 placeholder 사용
                     cardImageUrl = "https://via.placeholder.com/300x200/138072/FFFFFF?text=" + userCard.getCardProduct().getProductName().replace(" ", "+");
-                    log.info("💳 카드 이미지 URL이 없어서 placeholder 사용: {}", cardImageUrl);
-                } else {
-                    log.info("💳 카드 이미지 URL 정상: {}", cardImageUrl);
                 }
                 cardInfo.put("cardImageUrl", cardImageUrl);
-                cardInfo.put("cardImageBase64", null); // 실제 이미지 데이터가 있다면 여기에
+                cardInfo.put("cardImageBase64", null);
                 
                 cards.add(cardInfo);
                 
@@ -123,9 +87,7 @@ public class CardIntegrationService {
                 "monthlyTotalUsage", monthlyTotalUsage,
                 "primaryCardType", cards.isEmpty() ? "NONE" : cards.get(0).get("cardType")
             );
-            
-            log.info("💳 카드 정보 조회 완료 - 총 카드 수: {}", cards.size());
-            
+
             return Map.of(
                 "cards", cards,
                 "summary", summary,
@@ -133,35 +95,25 @@ public class CardIntegrationService {
             );
             
         } catch (Exception e) {
-            log.error("💳 카드 정보 조회 실패 - 회원ID: {}", memberId, e);
             return createEmptyCardResponse();
         }
     }
-    
-    /**
-     * 고객 정보 조회 - 실제 DB 데이터 사용
-     * 
-     * @param userId 사용자 ID
-     * @return 고객 정보
-     */
+
     public Map<String, Object> getCustomerInfo(Long userId) {
-        log.info("👤 고객 정보 조회 시작 - 사용자ID: {}", userId);
-        
         try {
             // 사용자 조회
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isEmpty()) {
-                log.warn("👤 사용자를 찾을 수 없음 - 사용자ID: {}", userId);
                 return createEmptyCustomerResponse();
             }
             
             User user = userOpt.get();
-            log.info("👤 사용자 정보 조회 완료 - 이름: {}, 이메일: {}, 전화번호: {}", 
+            log.info("사용자 정보 조회 완료 - 이름: {}, 이메일: {}, 전화번호: {}",
                     user.getName(), user.getEmail(), user.getPhoneNumber());
             
             // 사용자의 활성 카드 조회
             List<UserCard> userCards = userCardRepository.findByUserIdAndIsActiveTrue(userId);
-            log.info("👤 조회된 카드 수: {}", userCards.size());
+            log.info("조회된 카드 수: {}", userCards.size());
             
             // 고객 기본 정보
             Map<String, Object> customerInfo = Map.of(
@@ -178,10 +130,8 @@ public class CardIntegrationService {
             // 카드 정보 목록
             List<Map<String, Object>> cards = new ArrayList<>();
             for (UserCard userCard : userCards) {
-                // 실제 카드 혜택 조회
                 List<Map<String, Object>> cardBenefits = getCardBenefits(userCard.getCardProduct().getProductId());
-                
-                // 실제 거래내역 조회
+
                 List<Map<String, Object>> cardTransactions = getCardTransactionsInternal(userId, userCard.getId());
                 
                 Map<String, Object> cardInfo = new HashMap<>();
@@ -208,7 +158,7 @@ public class CardIntegrationService {
                 "joinDate", user.getCreatedAt()
             );
             
-            log.info("👤 고객 정보 조회 완료 - 사용자ID: {}, 카드 수: {}", userId, cards.size());
+            log.info("고객 정보 조회 완료 - 사용자ID: {}, 카드 수: {}", userId, cards.size());
             
             return Map.of(
                 "customerInfo", customerInfo,
@@ -218,18 +168,13 @@ public class CardIntegrationService {
             );
             
         } catch (Exception e) {
-            log.error("👤 고객 정보 조회 실패 - 사용자ID: {}", userId, e);
+            log.error("고객 정보 조회 실패 - 사용자ID: {}", userId, e);
             return createEmptyCustomerResponse();
         }
     }
-    
-    /**
-     * 카드 혜택 조회
-     */
+
     private List<Map<String, Object>> getCardBenefits(Long productId) {
         try {
-            // 카드 상품의 혜택 조회 (실제 DB에서)
-            // TODO: 실제 혜택 조회 로직 구현
             return List.of(
                 Map.of(
                     "benefitType", "친환경 교통",
@@ -249,12 +194,9 @@ public class CardIntegrationService {
             return new ArrayList<>();
         }
     }
-    
-    /**
-     * 카드 거래내역 조회 (통합 API용)
-     */
+
     public Map<String, Object> getCardTransactions(Long userId) {
-        log.info("👤 카드 거래내역 조회 시작 - 사용자ID: {}", userId);
+        log.info("카드 거래내역 조회 시작 - 사용자ID: {}", userId);
         
         try {
             // 사용자 카드 조회
@@ -272,24 +214,26 @@ public class CardIntegrationService {
             response.put("totalCount", allTransactions.size());
             response.put("userId", userId);
             
-            log.info("👤 카드 거래내역 조회 성공 - 사용자ID: {}, 거래건수: {}", userId, allTransactions.size());
+            log.info("카드 거래내역 조회 성공 - 사용자ID: {}, 거래건수: {}", userId, allTransactions.size());
             return response;
             
         } catch (Exception e) {
-            log.error("👤 카드 거래내역 조회 실패 - 사용자ID: {}", userId, e);
+            log.error("카드 거래내역 조회 실패 - 사용자ID: {}", userId, e);
             return Map.of("transactions", new ArrayList<>(), "totalCount", 0, "userId", userId);
         }
     }
     
-    /**
-     * 월간 소비현황 조회 (통합 API용)
-     */
+
     public Map<String, Object> getConsumptionSummary(Long userId) {
-        log.info("👤 월간 소비현황 조회 시작 - 사용자ID: {}", userId);
+        log.info("월간 소비현황 조회 시작 - 사용자ID: {}", userId);
         
         try {
             // 사용자 카드 조회
             List<UserCard> userCards = userCardRepository.findByUserIdAndIsActiveTrue(userId);
+            
+            // 이번 달 첫날부터 현재까지
+            LocalDateTime startOfMonth = YearMonth.now().atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = LocalDateTime.now();
             
             // 카테고리별 소비 금액 계산
             Map<String, Long> categoryAmounts = new HashMap<>();
@@ -297,12 +241,15 @@ public class CardIntegrationService {
             long totalCashback = 0;
             
             for (UserCard userCard : userCards) {
-                List<Map<String, Object>> cardTransactions = getCardTransactionsInternal(userId, userCard.getId());
+                // 이번달 거래내역만 조회
+                List<CardTransaction> monthlyTransactions = cardTransactionRepository
+                    .findByUserCardAndTransactionDateBetweenOrderByTransactionDateDesc(
+                        userCard, startOfMonth, endOfMonth);
                 
-                for (Map<String, Object> transaction : cardTransactions) {
-                    String category = (String) transaction.get("category");
-                    Long amount = ((Number) transaction.get("amount")).longValue();
-                    Long cashback = ((Number) transaction.get("cashbackAmount")).longValue();
+                for (CardTransaction transaction : monthlyTransactions) {
+                    String category = transaction.getCategory();
+                    Long amount = transaction.getAmount();
+                    Long cashback = transaction.getCashbackAmount();
                     
                     categoryAmounts.merge(category, amount, Long::sum);
                     totalAmount += amount;
@@ -316,32 +263,22 @@ public class CardIntegrationService {
             response.put("categoryAmounts", categoryAmounts);
             response.put("userId", userId);
             
-            log.info("👤 월간 소비현황 조회 성공 - 사용자ID: {}, 총소비: {}, 총캐시백: {}", 
-                    userId, totalAmount, totalCashback);
+            log.info("월간 소비현황 조회 성공 - 사용자ID: {}, 총소비: {}, 총캐시백: {}, 이번달 거래건수: {}",
+                    userId, totalAmount, totalCashback, categoryAmounts.values().stream().mapToLong(Long::longValue).sum());
             return response;
             
         } catch (Exception e) {
-            log.error("👤 월간 소비현황 조회 실패 - 사용자ID: {}", userId, e);
             return Map.of("totalAmount", 0, "totalCashback", 0, "categoryAmounts", new HashMap<>(), "userId", userId);
         }
     }
 
-    /**
-     * 카드 거래내역 조회 (내부 메서드)
-     */
     private List<Map<String, Object>> getCardTransactionsInternal(Long userId, Long cardId) {
         try {
-            // 사용자의 카드 거래내역 조회 (실제 DB에서)
-            log.info("🔍 실제 DB에서 카드 거래내역 조회 시작 - 사용자ID: {}, 카드ID: {}", userId, cardId);
-            
-            // 사용자 카드 조회
             UserCard userCard = userCardRepository.findById(cardId)
                 .orElseThrow(() -> new RuntimeException("사용자 카드를 찾을 수 없습니다: " + cardId));
-            
-            // 실제 거래내역 조회
+
             List<CardTransaction> transactions = cardTransactionRepository.findByUserCard(userCard);
-            log.info("🔍 DB에서 조회된 거래내역 수: {}", transactions.size());
-            
+
             List<Map<String, Object>> result = new ArrayList<>();
             for (CardTransaction transaction : transactions) {
                 Map<String, Object> transactionMap = new HashMap<>();
@@ -354,36 +291,15 @@ public class CardIntegrationService {
                 transactionMap.put("description", transaction.getDescription());
                 transactionMap.put("merchantCategory", transaction.getMerchantCategory());
 
-                // 혜택 카테고리 정보 추가
-                if (transaction.getBenefitCategory() != null) {
-                    transactionMap.put("benefitCategoryName", transaction.getBenefitCategory().getCategoryName());
-                    transactionMap.put("benefitCategoryIcon", transaction.getBenefitCategory().getCategoryIcon());
-                }
-
-                // 혜택 상세 정보 추가
-                if (transaction.getBenefitDetail() != null) {
-                    transactionMap.put("benefitName", transaction.getBenefitDetail().getBenefitName());
-                    transactionMap.put("benefitIcon", transaction.getBenefitDetail().getBenefitIcon());
-                }
-
                 result.add(transactionMap);
-
-                log.info("💳 거래내역 매핑 완료 - 상점: {}, 카테고리: {}, 캐시백률: {}%",
-                    transaction.getMerchantName(), transaction.getCategory(), transaction.getCashbackRate());
             }
-            
-            log.info("🔍 실제 DB 거래내역 조회 성공 - 건수: {}", result.size());
             return result;
             
         } catch (Exception e) {
-            log.error("카드 거래내역 조회 실패 - 사용자ID: {}, 카드ID: {}", userId, cardId, e);
             return new ArrayList<>();
         }
     }
-    
-    /**
-     * 빈 카드 응답 생성
-     */
+
     private Map<String, Object> createEmptyCardResponse() {
         return Map.of(
             "cards", List.of(),
@@ -398,10 +314,7 @@ public class CardIntegrationService {
             "responseTime", LocalDateTime.now()
         );
     }
-    
-    /**
-     * 빈 고객 정보 응답 생성
-     */
+
     private Map<String, Object> createEmptyCustomerResponse() {
         return Map.of(
             "customerInfo", Map.of(
