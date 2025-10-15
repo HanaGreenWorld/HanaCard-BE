@@ -43,14 +43,14 @@ public class HanamoneyMembership extends DateTimeEntity {
     private String membershipLevel = "BASIC";
 
     @Builder
-    public HanamoneyMembership(User user, String membershipId) {
+    public HanamoneyMembership(User user, String membershipId, Long balance, Long totalEarned, Long totalSpent, Boolean isActive, String membershipLevel) {
         this.user = user;
         this.membershipId = membershipId;
-        this.balance = 0L;
-        this.totalEarned = 0L;
-        this.totalSpent = 0L;
-        this.isActive = true;
-        this.membershipLevel = "BASIC";
+        this.balance = balance != null ? balance : 0L;
+        this.totalEarned = totalEarned != null ? totalEarned : 0L;
+        this.totalSpent = totalSpent != null ? totalSpent : 0L;
+        this.isActive = isActive != null ? isActive : true;
+        this.membershipLevel = membershipLevel != null ? membershipLevel : "BASIC";
     }
 
     // 하나머니 적립 (금융거래를 통해)
