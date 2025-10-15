@@ -113,28 +113,22 @@ public class CustomerInfoAuthFilter extends OncePerRequestFilter {
         
         filterChain.doFilter(request, response);
     }
-    
-    /**
-     * 고객 정보 토큰에서 사용자 정보 추출
-     */
+
     private User extractUserFromCustomerToken(String customerInfoToken) {
         try {
             // Base64 디코딩하여 CI 추출
-            String decoded = new String(Base64.getDecoder().decode(customerInfoToken));
-            log.debug("디코딩된 CI 토큰: {}", decoded);
+            String ci = new String(Base64.getDecoder().decode(customerInfoToken));
+            log.debug("추출된 CI: {}", maskCi(ci));
             
-            // CI에서 전화번호 추출 (예: "CI:010-1234-5678")
-            String phoneNumber = extractPhoneFromToken(decoded);
-            
-            // 전화번호로 사용자 조회
-            Optional<User> userOpt = userRepository.findByPhoneNumber(phoneNumber);
+            // CI로 직접 사용자 조회
+            Optional<User> userOpt = userRepository.findByCi(ci);
             
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
-                log.info("CI 토큰으로 사용자 조회 성공: ID={}, 전화번호={}", user.getId(), phoneNumber);
+                log.info("CI 기반 사용자 조회 성공: ID={}, CI={}", user.getId(), maskCi(ci));
                 return user;
             } else {
-                log.warn("CI 토큰에 해당하는 사용자를 찾을 수 없음: {}", phoneNumber);
+                log.warn("CI에 해당하는 사용자를 찾을 수 없음: CI={}", maskCi(ci));
                 return null;
             }
             
@@ -143,10 +137,7 @@ public class CustomerInfoAuthFilter extends OncePerRequestFilter {
             return null;
         }
     }
-    
-    /**
-     * 통합 인증 토큰에서 사용자 정보 추출
-     */
+
     private User extractUserFromUnifiedToken(String unifiedAuthToken) {
         try {
             // Base64 디코딩
@@ -213,10 +204,7 @@ public class CustomerInfoAuthFilter extends OncePerRequestFilter {
             return null;
         }
     }
-    
-    /**
-     * CI에서 전화번호 추출
-     */
+
     private String extractPhoneFromCI(String ci) {
         // CI_01012345678_123456 형식에서 전화번호 추출
         if (ci.startsWith("CI_") && ci.contains("_")) {
@@ -236,10 +224,7 @@ public class CustomerInfoAuthFilter extends OncePerRequestFilter {
         log.warn("CI에서 올바른 전화번호를 찾을 수 없음, 기본값 사용: {}", ci);
         return "010-1234-5678";
     }
-    
-    /**
-     * 토큰에서 전화번호 추출 (기존 메서드)
-     */
+
     private String extractPhoneFromToken(String decodedToken) {
         // CI:010-1234-5678 형식에서 전화번호 추출
         if (decodedToken.startsWith("CI:")) {
@@ -254,5 +239,12 @@ public class CustomerInfoAuthFilter extends OncePerRequestFilter {
         // 기본값 반환
         log.warn("토큰에서 올바른 전화번호를 찾을 수 없음, 기본값 사용: {}", decodedToken);
         return "010-1234-5678";
+    }
+
+    private String maskCi(String ci) {
+        if (ci == null || ci.length() < 8) {
+            return "****";
+        }
+        return ci.substring(0, 4) + "****" + ci.substring(ci.length() - 4);
     }
 }

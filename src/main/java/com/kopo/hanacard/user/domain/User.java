@@ -1,17 +1,18 @@
 package com.kopo.hanacard.user.domain;
 
-import com.kopo.hanacard.common.domain.DateTimeEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class User extends DateTimeEntity {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,12 +42,15 @@ public class User extends DateTimeEntity {
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
-    @Column(name = "group_customer_token", unique = true)
-    private String groupCustomerToken;
+    @Column(name = "ci", unique = true, length = 32)
+    private String ci;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
     @Builder
     public User(String username, String email, String phoneNumber, String name, 
-                String birthDate, String address, String customerGrade, Boolean isActive, String groupCustomerToken) {
+                String birthDate, String address, String customerGrade, Boolean isActive, String ci, LocalDateTime createdAt) {
         this.username = username;
         this.email = email;
         this.phoneNumber = phoneNumber;
@@ -55,7 +59,15 @@ public class User extends DateTimeEntity {
         this.address = address;
         this.customerGrade = customerGrade;
         this.isActive = isActive != null ? isActive : true;
-        this.groupCustomerToken = groupCustomerToken;
+        this.ci = ci;
+        this.createdAt = createdAt;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
     }
 
     public void updateUserInfo(String name, String address) {
@@ -65,17 +77,6 @@ public class User extends DateTimeEntity {
 
     public void deactivate() {
         this.isActive = false;
-    }
-
-    public String getGroupCustomerToken() {
-        return this.groupCustomerToken;
-    }
-
-    /**
-     * 그룹 고객 토큰 업데이트
-     */
-    public void setGroupCustomerToken(String groupCustomerToken) {
-        this.groupCustomerToken = groupCustomerToken;
     }
 }
 
