@@ -23,7 +23,7 @@ public class CardProduct extends DateTimeEntity {
     @Column(name = "product_type", nullable = false, length = 50)
     private String productType;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "CLOB")
     private String description;
 
     @Column(name = "annual_fee", nullable = false)
@@ -32,7 +32,7 @@ public class CardProduct extends DateTimeEntity {
     @Column(name = "credit_limit")
     private Long creditLimit;
 
-    @Column(name = "benefits", columnDefinition = "TEXT")
+    @Column(name = "benefits", columnDefinition = "CLOB")
     private String benefits;
 
     @Column(name = "image_url", length = 500)
@@ -51,6 +51,7 @@ public class CardProduct extends DateTimeEntity {
         this.benefits = benefits;
         this.imageUrl = imageUrl;
         this.isActive = true;
+        // DateTimeEntity 필드들은 @PrePersist에서 자동 설정되지만, Oracle에서는 명시적 설정이 필요할 수 있음
     }
 
     public void updateProduct(String productName, String productType, String description,

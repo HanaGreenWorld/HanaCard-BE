@@ -35,7 +35,7 @@ public class CardBenefit extends DateTimeEntity {
     @Column(name = "discount_rate", precision = 5, scale = 2)
     private BigDecimal discountRate;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "CLOB")
     private String description;
 
     @Column(name = "min_amount")

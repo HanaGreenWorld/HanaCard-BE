@@ -42,7 +42,7 @@ public class CardTransaction extends DateTimeEntity {
     @Column(name = "cashback_rate", precision = 5, scale = 2)
     private BigDecimal cashbackRate = BigDecimal.ZERO;
 
-    @Column(name = "description", columnDefinition = "TEXT")
+    @Column(name = "description", columnDefinition = "CLOB")
     private String description;
 
     @Column(name = "merchant_category", length = 50)

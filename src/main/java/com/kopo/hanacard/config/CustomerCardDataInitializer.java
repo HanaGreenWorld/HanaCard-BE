@@ -62,14 +62,15 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
         return userRepository.findByPhoneNumber(phoneNumber)
                 .orElseGet(() -> {
                     User user = User.builder()
-                            .username("green_user") // username 추가
+                            .username("green_user")
                             .name("김그린")
                             .email("green@example.com")
                             .phoneNumber(phoneNumber)
-                            .birthDate("1990-05-15") // 생년월일 추가 (문자열)
-                            .ci("CI_01012345678_123456") // CI 추가 (목데이터용)
+                            .birthDate("1990-05-15")
+                            .ci("CI_01012345678_123456")
                             .customerGrade("GOLD")
                             .isActive(true)
+                            .createdAt(LocalDateTime.now())
                             .build();
                     User savedUser = userRepository.save(user);
                     log.info("테스트 사용자 생성 완료 - ID: {}, 전화번호: {}", savedUser.getId(), phoneNumber);
@@ -190,6 +191,7 @@ public class CustomerCardDataInitializer implements CommandLineRunner {
                     CardTransaction.builder()
                         .userCard(userCard)
                         .merchantName("테슬라 충전소")
+                        .category("전기차충전")
                         .merchantCategory("EV_CHARGING")
                         .amount(15000L)
                         .cashbackAmount(450L) // 3% 캐시백

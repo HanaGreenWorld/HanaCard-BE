@@ -31,7 +31,7 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
-	runtimeOnly 'com.mysql:mysql-connector-j'
+//	runtimeOnly 'com.mysql:mysql-connector-j'
 	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -52,9 +52,13 @@ dependencies {
     
     // WebClient for HTTP requests
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	
 
 	implementation 'io.netty:netty-resolver-dns-native-macos:4.1.101.Final:osx-aarch_64'
+
+	// Oracle PKI 관련 라이브러리 (SSO 에러 해결용)
+	implementation 'com.oracle.database.security:oraclepki:23.3.0.23.09'
+	implementation 'com.oracle.database.security:osdt_cert:21.17.0.0'
+	implementation 'com.oracle.database.security:osdt_core:21.17.0.0'
 }
 
 tasks.named('test') {
