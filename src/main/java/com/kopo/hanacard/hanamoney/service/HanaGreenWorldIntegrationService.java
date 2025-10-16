@@ -36,7 +36,7 @@ public class HanaGreenWorldIntegrationService {
     private final UserService userService;
     private final RestTemplate restTemplate;
 
-    @Value("${hana-green-world.api.base-url}")
+    @Value("${integration.hanagreenworld.url}")
     private String hanaGreenWorldBaseUrl;
 
     @Transactional
