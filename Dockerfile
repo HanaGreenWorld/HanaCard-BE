@@ -1,27 +1,40 @@
-# Hanacard 서버용 Dockerfile
+# BE 서버용 Dockerfile
 FROM openjdk:17-jdk-slim
 
 # 작업 디렉토리 설정
 WORKDIR /app
 
-# Gradle wrapper와 build.gradle 복사
-COPY gradlew .
-COPY gradle gradle
-COPY build.gradle .
-COPY settings.gradle .
+# 모든 파일 복사
+COPY . .
 
-# 소스 코드 복사
-COPY src src
-
-# Gradle 빌드 실행
+# Gradle 빌드 실행 (상세 로그 포함)
 RUN chmod +x ./gradlew
-RUN ./gradlew build -x test
+RUN ./gradlew build -x test --info
 
-# 기존 JAR 파일 삭제 후 새 JAR 파일을 app.jar로 복사
-RUN rm -f app.jar && find build/libs -name "*.jar" -type f -exec cp {} app.jar \;
+# 빌드 결과 확인
+RUN echo "=== 빌드 디렉토리 확인 ===" && \
+    ls -la && \
+    echo "=== build 디렉토리 확인 ===" && \
+    ls -la build/ && \
+    echo "=== build/libs 디렉토리 확인 ===" && \
+    ls -la build/libs/ || echo "build/libs 디렉토리가 없습니다!"
+
+# JAR 파일을 app.jar로 복사 (안전한 방법)
+RUN if [ -d "build/libs" ]; then \
+        JAR_FILE=$(find build/libs -name "*.jar" -type f | head -1) && \
+        echo "JAR 파일 찾음: $JAR_FILE" && \
+        cp "$JAR_FILE" app.jar && \
+        ls -la app.jar; \
+    else \
+        echo "build/libs 디렉토리가 없습니다. 빌드가 실패했을 수 있습니다." && \
+        exit 1; \
+    fi
 
 # 포트 노출
 EXPOSE 8080
+
+# 환경변수 설정
+ENV PORT=8080
 
 # 애플리케이션 실행
 ENTRYPOINT ["java", "-jar", "app.jar"]
