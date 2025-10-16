@@ -38,4 +38,4 @@ out/
 
 ORACLE_SETUP.md
 
-gradlew*
+.env
